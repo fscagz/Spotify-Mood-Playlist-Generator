@@ -1,6 +1,8 @@
 # Spotify-Mood-Playlist-Generator
 Create a playlist based on your mood!
 
+PHASE 1: Basic Command Line infrastructure now in place.
+```
 ai_playlist_generator/
 │── app.py                 # Main entry point (CLI or Flask/FastAPI server)
 │
@@ -29,3 +31,4 @@ ai_playlist_generator/
 ├── requirements.txt       # Dependencies (spotipy, transformers, flask/fastapi, etc.)
 ├── README.md              # Project setup + usage guide
 └── .env                   # API keys (Spotify Client ID/Secret)
+```
