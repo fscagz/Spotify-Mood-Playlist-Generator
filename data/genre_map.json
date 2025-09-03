@@ -1,0 +1,9 @@
+{
+  "rainy": ["acoustic", "chill", "ambient"],
+  "morning": ["jazz", "acoustic", "folk"],
+  "angry": ["metal", "hard-rock", "rap"],
+  "gym": ["hip-hop", "edm", "work-out"],
+  "happy": ["pop", "dance", "funk"],
+  "sad": ["piano", "acoustic", "emo"],
+  "focus": ["ambient", "study", "classical"]
+}
