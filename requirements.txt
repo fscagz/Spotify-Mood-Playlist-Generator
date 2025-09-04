@@ -1,2 +1,6 @@
 spotipy
 python-dotenv
+sentence-transformers
+pylast
+PySimpleGUI
+PyQt5

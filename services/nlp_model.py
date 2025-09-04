@@ -15,7 +15,6 @@ def clean_text(text: str) -> str:
     return re.sub(r"[^a-zA-Z\s]", "", text.lower())
 
 def analyze_mood(mood: str, top_n: int = 3):
-    # For now, uses simple keyword lookup; later add Distillibert
     mood = clean_text(mood)
     genres = []
 

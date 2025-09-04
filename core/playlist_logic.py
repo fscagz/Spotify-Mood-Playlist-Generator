@@ -1,42 +1,72 @@
 # core/playlist_logic.py
 from services.spotify_client import SpotifyClient
-from core.genres import VALID_GENRES
+from services.lastfm_client import LastFMClient
+from services.cache import get_cached_tracks, set_cached_tracks
+from core.genres import DEFAULT_GENRES, FALLBACK_TRACKS
+from core.semantic_nlp import match_semantic_genres
+import os
+from dotenv import load_dotenv
+import random
+
+load_dotenv()
 
 spotify = SpotifyClient()
+lastfm = LastFMClient(api_key=os.getenv("LASTFM_API_KEY"), api_secret=os.getenv("LASTFM_SECRET"))
 
-# Minimal track mapping (hardcoded sample tracks per genre)
-GENRE_SAMPLE_TRACKS = {
-    "pop": [
-        "3KkXRkHbMCARz0aVfEt68P",  # e.g., "Blinding Lights" - The Weeknd
-        "6rqhFgbbKwnb9MLmUQDhG6"
-    ],
-    "rock": [
-        "7ouMYWpwJ422jRcDASZB7P",  # e.g., "Bohemian Rhapsody"
-        "1AhDOtG9vPSOmsWgNW0BEY"
-    ],
-    "hip hop": [
-        "2QjOHCTQkX96fk3yhd9qkf",
-        "6rPO02ozF3bM7NnOV4h6s2"
-    ],
-}
 
-DEFAULT_GENRES = ["pop", "rock", "hip hop"]
+def generate_playlist(mood_keywords: str, limit: int = 20) -> list[dict]:
+    """
+    Generates a Spotify playlist based on mood/keywords.
+    Steps:
+      1. Check cache
+      2. Semantic mood-to-genre matching
+      3. Fetch tracks dynamically from Last.fm
+      4. Search Spotify for playable track URIs
+      5. Fill in with fallback tracks if needed
+      6. Shuffle and limit
+      7. Cache results
+    """
+    # Check cache first
+    cached = get_cached_tracks(mood_keywords)
+    if cached:
+        print(f"[CACHE] Using cached tracks for mood '{mood_keywords}'")
+        return cached[:limit]
 
-def generate_playlist(seed_genres, limit=20):
-    # normalize & filter
-    cleaned = [g.lower().replace("-", " ").strip() for g in seed_genres]
-    filtered = [g for g in cleaned if g in VALID_GENRES]
+    matched_genres = match_semantic_genres(mood_keywords)
+    if not matched_genres:
+        print("[WARN] No genres matched, using defaults.")
+        matched_genres = DEFAULT_GENRES.copy()
 
-    if not filtered:
-        print("[WARN] Not enough valid genres matched. Falling back to defaults.")
-        filtered = DEFAULT_GENRES
+    print(f"[LOGIC] Matched genres: {matched_genres}")
 
-    print(f"[LOGIC] Using seed genres: {filtered}")
-
-    # Get tracks from hardcoded mapping
     playlist_tracks = []
-    for genre in filtered:
-        playlist_tracks.extend(GENRE_SAMPLE_TRACKS.get(genre, []))
 
-    # Limit total tracks
-    return playlist_tracks[:limit]
+    # Last.fm integration if no Spotify premium
+    for genre in matched_genres:
+        try:
+            lastfm_tracks = lastfm.get_similar_tracks(artist_name=genre, limit=3)
+            for name, artist in lastfm_tracks:
+                # Search Spotify for the track URI
+                results = spotify.sp.search(q=f"{name} {artist}", type="track", limit=1)
+                if results['tracks']['items']:
+                    track_info = results['tracks']['items'][0]
+                    playlist_tracks.append({
+                        'name': track_info['name'],
+                        'artist': track_info['artists'][0]['name'],
+                        'uri': track_info['uri']
+                    })
+        except Exception as e:
+            print(f"[ERROR] Last.fm/Spotify fetch failed for genre '{genre}': {e}")
+            playlist_tracks.extend(FALLBACK_TRACKS.get(genre, []))
+
+    # Fill in with fallback tracks if playlist is too short
+    if len(playlist_tracks) < limit:
+        for genre in matched_genres:
+            playlist_tracks.extend(FALLBACK_TRACKS.get(genre, []))
+
+    random.shuffle(playlist_tracks)
+    final_tracks = playlist_tracks[:limit]
+
+    set_cached_tracks(mood_keywords, final_tracks)
+
+    return final_tracks

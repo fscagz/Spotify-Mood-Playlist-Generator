@@ -1,21 +1,30 @@
 # core/nlp.py
-from core.genres import VALID_GENRES
 
-def match_genres(user_input: str):
+# Map basic keywords to one or more possible genres
+MOOD_TO_GENRES = {
+    "rainy": ["chill", "ambient", "acoustic"],
+    "morning": ["acoustic", "pop", "classical"],
+    "sad": ["ambient", "jazz", "blues"],
+    "happy": ["pop", "electronic", "dance"],
+    "angry": ["rock", "metal", "hip hop"],
+    "party": ["dance", "electronic", "pop", "hip hop"],
+    "relax": ["chill", "jazz", "classical"],
+    "focus": ["classical", "electronic", "ambient"],
+    "workout": ["electronic", "hip hop", "pop", "rock"],
+    "love": ["pop", "rnb", "acoustic"],
+    "sleep": ["ambient", "classical", "chill"]
+}
+
+def match_genres(keywords):
     """
-    Map mood/keywords to Spotify genres.
-    - Splits the input into words
-    - Normalizes to lowercase
-    - Matches against the official VALID_GENRES
-    - Returns a filtered list or empty if nothing matches
+    Returns a list of genres matching the given mood/keywords.
+    Matches multiple genres per keyword to improve playlist diversity.
     """
-    tokens = [word.lower().strip() for word in user_input.split()]
+    keywords = keywords.lower().split()
+    matched_genres = set()
 
-    matched = [t for t in tokens if t in VALID_GENRES]
+    for word in keywords:
+        if word in MOOD_TO_GENRES:
+            matched_genres.update(MOOD_TO_GENRES[word])
 
-    if matched:
-        print(f"[NLP] Matched genres: {matched}")
-        return matched
-    else:
-        print("[NLP] No direct genre match.")
-        return []
+    return list(matched_genres)
