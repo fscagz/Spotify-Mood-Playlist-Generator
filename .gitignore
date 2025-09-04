@@ -1,1 +1,9 @@
+# Python virtual environment
 venv/
+__pycache__/
+*.pyc
+
+# Mac system files
+.DS_Store
+
+.envvenv/
